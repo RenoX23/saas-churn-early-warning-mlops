@@ -1,0 +1,67 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lint-and-test:
+    name: Lint, Typecheck & Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          pip install -r requirements.txt
+          pip install -e .
+
+      - name: Run Ruff Linter & Formatter Check
+        run: |
+          ruff check .
+          ruff format --check .
+
+      - name: Run Test Suite with Coverage
+        run: |
+          pytest --cov=src --cov-report=term-missing --cov-report=xml
+
+  docker-build:
+    name: Multi-stage Docker Image Build & Sanity Check
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: false
+          tags: saas-churn-early-warning:latest
+          load: true
+
+      - name: Test Docker Container Startup & Healthcheck
+        run: |
+          docker run -d --name test-api -p 8000:8000 saas-churn-early-warning:latest
+          # Allow container startup
+          sleep 5
+          # Query /health endpoint
+          curl -f http://localhost:8000/health || (docker logs test-api && exit 1)
+          docker stop test-api && docker rm test-api

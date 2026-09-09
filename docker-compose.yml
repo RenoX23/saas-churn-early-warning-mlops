@@ -1,0 +1,18 @@
+services:
+  churn-api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: saas-churn-early-warning-api
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
