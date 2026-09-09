@@ -9,13 +9,19 @@ executes KS-test/PSI statistical evaluations, generates visual reports, and trig
 import argparse
 import logging
 from pathlib import Path
+import sys
 
-import numpy as np
-import pandas as pd
+# Ensure project root is on sys.path for direct script execution
+project_root = Path(__file__).resolve().parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
 
-from monitoring.alert_service import send_drift_alert
-from monitoring.drift_detector import SaaSDriftDetector
-from src.data.generate_telemetry import generate_synthetic_telemetry
+import numpy as np  # noqa: E402
+import pandas as pd  # noqa: E402
+
+from monitoring.alert_service import send_drift_alert  # noqa: E402
+from monitoring.drift_detector import SaaSDriftDetector  # noqa: E402
+from src.data.generate_telemetry import generate_synthetic_telemetry  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)

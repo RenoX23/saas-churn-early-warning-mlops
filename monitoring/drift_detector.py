@@ -210,8 +210,8 @@ class SaaSDriftDetector:
         Generate and save an interactive Evidently AI visual drift report HTML file.
         """
         try:
-            from evidently import Report
             from evidently.legacy.metric_preset import DataDriftPreset
+            from evidently.legacy.report import Report
 
             cols_to_use = [
                 c for c in self.reference_df.columns
