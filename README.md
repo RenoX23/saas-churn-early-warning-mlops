@@ -1,31 +1,69 @@
 # B2B SaaS Account Health & Churn Early-Warning Microservice with Drift Alerting
 
 [![CI/CD Pipeline](https://github.com/RenoX23/saas-churn-early-warning-mlops/actions/workflows/ci.yml/badge.svg)](https://github.com/RenoX23/saas-churn-early-warning-mlops/actions/workflows/ci.yml)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Render-46E3B7.svg?logo=render&logoColor=white)](https://saas-churn-dashboard.onrender.com)
 [![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/release/python-3110/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![LightGBM](https://img.shields.io/badge/LightGBM-4.7-brightgreen.svg)](https://lightgbm.readthedocs.io/)
 [![Docker](https://img.shields.io/badge/Docker-Multi--stage-2496ED.svg?logo=docker&logoColor=white)](https://www.docker.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-> **An active early-warning MLOps microservice that predicts enterprise B2B SaaS churn on imbalanced telemetry (0.88 PR-AUC), dynamically attributes top-3 actionable risk drivers via SHAP at sub-16ms latency, and dispatches automated Slack/Discord alerts upon statistical covariate shift (KS-test p < 0.05 / PSI > 0.10).**
+> **A production-grade early-warning MLOps system that predicts B2B SaaS churn on class-imbalanced account telemetry (0.88 PR-AUC), isolates the top-3 actionable risk drivers at inference via SHAP TreeExplainer (<16ms P50 latency), serves an interactive health monitoring dashboard, and triggers automated Slack/Discord alerts upon statistical covariate drift.**
+
+---
+
+## Live Deployment
+
+The system is deployed live and publicly accessible:
+* **Interactive Command Center**: [https://saas-churn-dashboard.onrender.com](https://saas-churn-dashboard.onrender.com)
+* **OpenAPI Documentation**: [https://saas-churn-dashboard.onrender.com/docs](https://saas-churn-dashboard.onrender.com/docs)
+* **Health & Liveness Probe**: [https://saas-churn-dashboard.onrender.com/health](https://saas-churn-dashboard.onrender.com/health)
 
 ---
 
 ## 1. Business Problem & Executive Framing
 
-In enterprise subscription B2B SaaS, Customer Acquisition Costs (CAC) routinely exceed \$15,000 to \$50,000+ per account. When an enterprise account silently churns, the company suffers compounding Annual Recurring Revenue (ARR) leakage.
+In enterprise subscription SaaS, Customer Acquisition Costs (CAC) frequently exceed \$15,000 to \$50,000+ per contract. When an enterprise account silently churns, it creates compounding Annual Recurring Revenue (ARR) leakage.
 
-Traditional churn prediction systems operate as **passive, offline batch jobs** (e.g. monthly scripts). By the time a batch job flags an account, the customer has typically already completed vendor procurement with a competitor and decided to terminate.
+Traditional churn prediction setups operate as **passive, offline monthly batch jobs**. By the time an account is flagged in a monthly spreadsheet, the customer has usually already initiated RFP evaluation with a competitor and decided to terminate.
 
 **What This System Solves**:
-1. **Active Real-Time Early-Warning**: Scores account health continuously via REST API upon CRM and telemetry events rather than waiting for monthly batch cycles.
-2. **Actionable Explainability at Inference**: Instead of returning an opaque probability, every prediction surfaces the **top 3 specific risk drivers** (direction, raw value, and Customer Success intervention playbooks) via SHAP `TreeExplainer`.
-3. **Class-Imbalance Calibration**: Calibrated for realistic enterprise churn base rates (~5–7%), optimizing **PR-AUC (0.8837)** and decision thresholds ($\tau^* = 0.81$) to eliminate false alarms and prevent CS alert fatigue.
-4. **Closed-Loop Drift Detection**: Monitors production inference windows against the training baseline using **Two-Sample Kolmogorov-Smirnov tests** ($p < 0.05$) and **Population Stability Index** ($\text{PSI} > 0.10$), dispatching real-time webhook alerts to Slack before model degradation impacts the business.
+1. **Active Real-Time Early-Warning**: Evaluates account health continuously via REST API upon CRM and usage events rather than waiting for end-of-month batch runs.
+2. **Actionable Explainability at Serving Time**: Every inference request surfaces the **top 3 specific risk drivers** (direction, raw value, and prescriptive Customer Success playbooks) computed via SHAP `TreeExplainer` in under 5ms.
+3. **Class-Imbalance Calibration**: Calibrated specifically for realistic enterprise churn base rates (~6%), optimizing **PR-AUC (0.8837)** and the decision threshold ($\tau^* = 0.81$) to eliminate false alarms and avoid CS alert fatigue.
+4. **Automated Covariate Drift Monitoring**: Evaluates live inference windows against the baseline training distribution using **Two-Sample Kolmogorov-Smirnov tests** ($p < 0.05$) and **Population Stability Index** ($\text{PSI} > 0.10$), dispatching webhook alerts to Slack before model degradation impacts business operations.
 
 ---
 
-## 2. System Architecture & Flow
+## 2. Interactive Dashboard ("Account Health Command Center")
+
+The microservice includes a real-time web dashboard served directly from FastAPI (`GET /`), designed following high-precision technical standards:
+
+### Feature Highlights
+* **Account Risk Portfolio Table**: Batch-scores customer accounts across Enterprise, Mid-Market, and SMB tiers. Color-coded risk badges (🔴 Critical, 🟡 Elevated, 🟢 Nominal) display MRR at risk, churn probability, and primary risk driver.
+* **SHAP Risk Attribution Waterfall**: Clicking any account row dynamically renders horizontal contribution bars showing exact Shapley log-odds impacts, raw telemetry inputs, and Customer Success intervention playbooks.
+* **What-If Churn Simulator**: Revenue and CS teams can adjust key behavioral sliders (seat utilization, login decay velocity, P1 support tickets, feature adoption, CSM cadence, overdue billing days) to observe real-time probability recalculations.
+* **Production Model Diagnostics**: Live metric cards displaying holdout test performance (PR-AUC, ROC-AUC, F1 Score, Brier Calibration Score) and median batch inference latency.
+
+---
+
+### Dashboard Walkthrough
+
+#### 1. System Overview & Model Evaluation Diagnostics
+![Account Health Command Center Overview](screenshots/01_dashboard_overview.png)
+*Live KPI diagnostics displaying holdout evaluation metrics (PR-AUC: 0.8837, F1: 0.7964, Brier Score: 0.0189) and portfolio risk distribution.*
+
+#### 2. Enterprise Account Risk Portfolio Table
+![Account Risk Portfolio Table](screenshots/02_account_risk_portfolio.png)
+*Portfolio table ranking accounts by churn probability and risk tier, displaying contracted MRR and immediate risk drivers.*
+
+#### 3. SHAP Risk Attribution & What-If Churn Simulator
+![SHAP Attribution and What-If Churn Simulator](screenshots/03_shap_attribution_and_simulator.png)
+*Local SHAP feature attribution (left) paired with real-time scenario simulation controls (right).*
+
+---
+
+## 3. System Architecture & Flow
 
 ```
 [B2B SaaS Account Telemetry: Usage Logs, Support Tickets, License Data]
@@ -42,6 +80,7 @@ Traditional churn prediction systems operate as **passive, offline batch jobs** 
                                │
                                ▼
 [Containerized Inference Microservice (FastAPI + Docker)] (src/api/)
+   ├── GET  /               -> Interactive Account Health Command Center UI
    ├── POST /predict        -> Single Account Risk Score + Top 3 SHAP Drivers (<16ms)
    ├── POST /batch-predict  -> Bulk CRM Account Scoring & Portfolio Analytics
    └── GET  /health         -> Liveness / Readiness Probes & Model Metadata
@@ -59,7 +98,7 @@ Traditional churn prediction systems operate as **passive, offline batch jobs** 
 
 ---
 
-## 3. Benchmark Performance & Evaluation
+## 4. Benchmark Performance & Evaluation
 
 The model was evaluated against strict stratified holdout test splits (2,000 accounts) with an empirical churn base rate of 6.0%:
 
@@ -70,31 +109,33 @@ The model was evaluated against strict stratified holdout test splits (2,000 acc
 | **Production LightGBM (Ours)** | **0.8837** | **0.9883** | **0.7964** | **0.8713** | 0.7333 | **0.0189** | **15.57ms** |
 
 * **Acceptance Criterion Met**: PR-AUC $\ge 0.84$ (**Achieved 0.8837**).
-* **Serving Latency SLA**: Sub-35ms target (**Achieved P50: 15.57ms, P95: 16.65ms** with SHAP explainability enabled).
+* **Serving Latency SLA**: Sub-35ms target (**Achieved P50: 15.57ms, P95: 16.65ms** including full SHAP attribution).
 * **Test Confusion Matrix**:
-  - True Negatives: **1,867** | False Positives: **13** (High precision prevents CS team alert fatigue)
-  - False Negatives: **32** | True Positives: **88** (Captures early-stage enterprise churn risk)
+  - True Negatives: **1,867** | False Positives: **13** (High precision eliminates CS alert fatigue)
+  - False Negatives: **32** | True Positives: **88** (Reliably detects enterprise churn candidates)
 
 ---
 
-## 4. Technical Stack & Architectural Decisions
+## 5. Technical Stack & Architectural Decisions
 
 | Layer | Tool / Technology | Architectural Rationale & Defense |
 | :--- | :--- | :--- |
-| **Language** | Python 3.11 | Modern typing, native performance, pre-built wheel availability. |
-| **ML Engine** | LightGBM 4.7 | Fast gradient boosting over tabular data; native handling of non-linear behavioral interactions and missing values. |
-| **Metric Focus** | PR-AUC ($\ge 0.84$) | In 6% imbalanced data, ROC-AUC is misleadingly inflated by true negatives. PR-AUC directly penalizes false alarms. |
+| **Language** | Python 3.11 | Native performance, strict type annotations, modern async runtime. |
+| **ML Engine** | LightGBM 4.7 | Gradient boosting over tabular telemetry; handles non-linear interactions and missing data. |
+| **Metric Focus** | PR-AUC ($\ge 0.84$) | In 6% imbalanced data, ROC-AUC is distorted by true negatives. PR-AUC directly evaluates minority class precision. |
 | **Threshold Tuning** | F1 Calibration ($\tau^* = 0.81$) | Replaced naive 0.5 threshold with optimal search balancing precision (0.8713) against recall (0.7333). |
-| **Explainability** | SHAP `TreeExplainer` | Tree-specific exact Shapley computation pre-allocated during startup to deliver local feature attribution in under 5ms. |
-| **API Microservice** | FastAPI + Pydantic v2 | High-throughput async ASGI serving with strict schema validation and OpenAPI documentation. |
-| **Containerization** | Multi-Stage Docker | Minimal runtime attack surface (builder stage separated from runtime) running as non-root user (`appuser`). |
-| **CI/CD Pipeline** | GitHub Actions | Dual-stage automated testing: linting (`ruff`), test suite with coverage (`pytest`), and container build verification. |
+| **Explainability** | SHAP `TreeExplainer` | Exact tree Shapley values pre-allocated during server startup to deliver local attribution in under 5ms. |
+| **API Microservice** | FastAPI + Pydantic v2 | High-throughput async ASGI serving with strict schema validation and OpenAPI docs. |
+| **UI Dashboard** | Jinja2 + Vanilla CSS/JS | Server-rendered HTML dashboard with zero heavy JS build steps, served directly from FastAPI. |
+| **Containerization** | Multi-Stage Docker | Hardened runtime image running as a non-root system user (`appuser`) with health checks. |
+| **Deployment** | Render Blueprint (IaC) | Declarative `render.yaml` specification for automated cloud container deployment. |
+| **CI/CD Pipeline** | GitHub Actions | Dual-stage pipeline: linting (`ruff`), test suite (`pytest` with coverage), and Docker build validation. |
 | **Drift Monitoring** | Evidently AI & SciPy | Two-Sample KS-test ($p < 0.05$) for continuous features + PSI ($> 0.10$) for categorical distributions. |
-| **Alerting** | Slack / Discord Webhooks | Formatted Slack Blocks JSON dispatching breached feature statistics, means, and remediation advice. |
+| **Alerting** | Slack / Discord Webhooks | Formatted Slack Blocks JSON dispatching breached feature statistics and remediation guidance. |
 
 ---
 
-## 5. Repository Structure
+## 6. Repository Structure
 
 ```
 aiml-b2b-saas-churn-mlops/
@@ -116,6 +157,11 @@ aiml-b2b-saas-churn-mlops/
 │   ├── drift_detector.py          # KS-test & PSI statistical drift engine + Evidently
 │   └── simulate_drift.py          # Production covariate shift simulation runner
 ├── render.yaml                    # Render Blueprint IaC deployment configuration
+├── screenshots/                   # Dashboard UI visual artifacts
+│   ├── 01_dashboard_overview.png
+│   ├── 02_account_risk_portfolio.png
+│   ├── 03_shap_attribution_and_simulator.png
+│   └── 04_what_if_controls.png
 ├── src/
 │   ├── __init__.py
 │   ├── api/
@@ -153,7 +199,7 @@ aiml-b2b-saas-churn-mlops/
 
 ---
 
-## 6. Quickstart & Installation
+## 7. Quickstart & Installation
 
 ### Option A: Local Virtual Environment Setup
 
@@ -178,20 +224,20 @@ pip install -e .
 # Build and run the multi-stage production container
 docker compose up --build
 
-# Microservice & Dashboard live at: http://localhost:8000
+# Microservice & Dashboard will be live at: http://localhost:8000
 # OpenAPI Interactive Documentation: http://localhost:8000/docs
 ```
 
 ### Option C: Live Cloud Deployment (Render Blueprint)
 
-This repository includes a `render.yaml` infrastructure-as-code blueprint for one-click deployment:
-1. Connect your GitHub repository to [Render](https://dashboard.render.com).
-2. Select **New + → Blueprint** and select `saas-churn-early-warning-mlops`.
-3. Render automatically triggers the multi-stage Docker build, attaches health check probes (`/health`), and deploys the live service with zero manual server configuration.
+This repository includes a [`render.yaml`](render.yaml) blueprint specification for automated infrastructure-as-code deployment:
+1. Log in to your [Render Dashboard](https://dashboard.render.com).
+2. Click **New + → Blueprint** and select `saas-churn-early-warning-mlops`.
+3. Render automatically triggers the multi-stage Docker build, attaches health check probes (`/health`), and deploys the live service.
 
 ---
 
-## 7. Execution Guide
+## 8. Execution Guide
 
 ### 1. Generate Telemetry & Train Model
 
@@ -290,7 +336,9 @@ curl -X POST http://localhost:8000/predict \
       "actionable_recommendation": "Unresolved P1 outages blocking core workflows. Escalate to VP of Engineering."
     }
   ],
-  "inference_latency_ms": 15.82
+  "inference_latency_ms": 15.82,
+  "contract_tier": "Enterprise",
+  "monthly_recurring_revenue": 18500.0
 }
 ```
 
@@ -317,30 +365,30 @@ cat monitoring/reports/last_drift_alert.json
 
 ---
 
-## 8. Key Interview Defenses (Memorize Cold)
+## 9. Key Technical Interview Defenses
 
-### Q1: Why did you prioritize PR-AUC over ROC-AUC?
-> *"In enterprise B2B SaaS, churn is inherently rare (~5–8% base rate). ROC-AUC incorporates False Positive Rate, which includes the enormous pool of True Negatives (94% healthy accounts) in its denominator. This causes ROC-AUC to appear unrealistically high (e.g. 0.98+) even when precision on churners is poor. PR-AUC focuses exclusively on the minority class. By optimizing for PR-AUC (0.8837) and calibrating our decision threshold to 0.81, we achieved 87.1% precision, ensuring Customer Success managers are not flooded with false alarms."*
+### Q1: Why prioritize PR-AUC over ROC-AUC?
+> *"In enterprise SaaS churn, positive outcomes are rare (~5–8% base rate). ROC-AUC incorporates the False Positive Rate, which includes the entire pool of True Negatives in its denominator. This inflates ROC-AUC even when minority precision is inadequate. PR-AUC focuses directly on the minority class. By optimizing for PR-AUC (0.8837) and calibrating the decision threshold to 0.81, the model achieves 87.1% precision, preventing alert fatigue across Customer Success teams."*
 
-### Q2: What kind of data drift did you monitor and how did you pick statistical thresholds?
-> *"We separated telemetry monitoring into two statistical regimes: continuous behavioral features (e.g. 30-day login decay, seat utilization) and discrete contract structures (e.g. contract tier, duration). For continuous variables, we applied the Two-Sample Kolmogorov-Smirnov (KS) test with an alpha threshold of 0.05. For discrete tiers, we used the Population Stability Index (PSI) with a 0.10 warning threshold and 0.25 critical action threshold. When upstream product changes or outages alter usage distributions, our webhook fires before model performance drops in production."*
+### Q2: What drift detection strategy did you implement?
+> *"Telemetry monitoring is divided into continuous behavioral metrics (e.g. 30-day login decay, seat utilization) and discrete contract structures (e.g. contract tier). Continuous variables are monitored with the Two-Sample Kolmogorov-Smirnov test (alpha = 0.05). Discrete distributions are evaluated using the Population Stability Index (PSI > 0.10 warning threshold). When upstream product updates or outages shift telemetry distributions, automated alerts dispatch before model accuracy degrades."*
 
-### Q3: How did you incorporate SHAP TreeExplainer into the serving path without breaching latency SLAs?
-> *"SHAP KernelExplainer is computationally intractable for real-time serving. We utilized `shap.TreeExplainer`, which has $O(TLD^2)$ complexity. To eliminate per-request overhead, the explainer is instantiated during FastAPI server startup inside the lifespan context manager. By pre-allocating the explainer and computing attribution directly on the transformed array, end-to-end single-account inference including top-3 driver extraction executes in **15.57ms (P50)**, comfortably below our 35ms production SLA."*
+### Q3: How is SHAP TreeExplainer integrated without breaching latency SLAs?
+> *"SHAP KernelExplainer is too slow for online inference. We use `shap.TreeExplainer`, which operates in polynomial time. The explainer is instantiated during server startup within the FastAPI lifespan context manager. By pre-allocating the explainer and computing attribution directly on the transformed feature array, end-to-end single-account inference including top-3 driver extraction executes in **15.57ms (P50)**, well within the 35ms SLA."*
 
-### Q4: How did you ensure zero data leakage in your feature pipeline?
-> *"We enforced strict featurization ordering. The raw telemetry dataset is split into stratified train and test partitions BEFORE any transformer is fitted. The `SaaSFeatureTransformer` computes imputation statistics (such as median NPS) and categorical mappings strictly on the training partition. The test split and real-time inference payloads are transformed using the fitted transformer parameters without touching target labels."*
+### Q4: How did you ensure zero data leakage in the feature pipeline?
+> *"Strict featurization ordering is enforced. The telemetry dataset is split into stratified train and test partitions BEFORE any transformer is fitted. The `SaaSFeatureTransformer` learns imputation statistics (e.g. median NPS) and categorical mappings solely from the training split. Both the test split and online inference payloads are transformed using the fitted parameters without touching target labels."*
 
 ---
 
-## 9. Google XYZ Resume Bullets
+## 10. Resume Bullets (Google XYZ Format)
 
 * **Engineered an active B2B SaaS churn early-warning microservice with LightGBM and FastAPI in Docker, achieving an 88.4% PR-AUC and sub-16ms inference latency on 10k enterprise account records.**
-* **Integrated SHAP TreeExplainer into the inference layer to dynamically extract the top 3 behavioral risk drivers (e.g. seat underutilization, ticket escalation velocity) alongside prescriptive Customer Success playbooks.**
-* **Built an automated continuous drift monitoring suite with Evidently AI and GitHub Actions CI/CD, triggering automated Slack alerts upon detecting covariate shift (Two-sample KS-test p < 0.05, PSI > 0.10).**
+* **Integrated SHAP TreeExplainer into the online serving path to dynamically surface top-3 behavioral risk drivers alongside prescriptive Customer Success playbooks.**
+* **Deployed a containerized command center on Render with live scenario simulation, paired with an automated drift monitoring suite that dispatches webhook alerts upon covariate shift (KS-test p < 0.05, PSI > 0.10).**
 
 ---
 
-## 10. License
+## 11. License
 
 Distributed under the MIT License. See `LICENSE` for more information.
