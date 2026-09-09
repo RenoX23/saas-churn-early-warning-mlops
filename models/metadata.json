@@ -1,0 +1,106 @@
+{
+  "model_version": "1.0.0",
+  "model_type": "LightGBMClassifier",
+  "created_at_utc": "2026-09-09T12:25:33.526132+00:00",
+  "optimal_threshold": 0.8099999999999999,
+  "feature_names": [
+    "contract_tier_code",
+    "contract_duration_months",
+    "tenure_months",
+    "monthly_recurring_revenue",
+    "licensed_seats",
+    "active_users_last_30d",
+    "seat_utilization_ratio",
+    "login_frequency_last_30d",
+    "login_decay_ratio",
+    "feature_adoption_score",
+    "support_tickets_last_90d",
+    "p1_tickets_last_30d",
+    "ticket_escalation_velocity",
+    "csm_touchpoints_last_90d",
+    "billing_overdue_days",
+    "nps_missing_flag",
+    "nps_score_imputed",
+    "underutilization_risk",
+    "steep_login_decay",
+    "p1_ticket_density",
+    "high_mrr_neglect_flag",
+    "delinquent_flag"
+  ],
+  "raw_numerical_cols": [
+    "contract_tier_code",
+    "contract_duration_months",
+    "tenure_months",
+    "monthly_recurring_revenue",
+    "licensed_seats",
+    "active_users_last_30d",
+    "seat_utilization_ratio",
+    "login_frequency_last_30d",
+    "login_decay_ratio",
+    "feature_adoption_score",
+    "support_tickets_last_90d",
+    "p1_tickets_last_30d",
+    "ticket_escalation_velocity",
+    "csm_touchpoints_last_90d",
+    "billing_overdue_days",
+    "nps_missing_flag",
+    "nps_score_imputed",
+    "underutilization_risk",
+    "steep_login_decay",
+    "p1_ticket_density",
+    "high_mrr_neglect_flag",
+    "delinquent_flag"
+  ],
+  "test_metrics": {
+    "pr_auc": 0.8837,
+    "roc_auc": 0.9883,
+    "f1": 0.7964,
+    "precision": 0.8713,
+    "recall": 0.7333,
+    "brier_score": 0.0189,
+    "threshold": 0.81
+  },
+  "train_metrics": {
+    "pr_auc": 0.9979,
+    "roc_auc": 0.9999,
+    "f1": 0.9844,
+    "precision": 0.9773,
+    "recall": 0.9916,
+    "brier_score": 0.0068,
+    "threshold": 0.81
+  },
+  "baselines": {
+    "dummy": {
+      "pr_auc": 0.0648,
+      "roc_auc": 0.5244,
+      "f1": 0.1061,
+      "precision": 0.104,
+      "recall": 0.1083,
+      "brier_score": 0.1095,
+      "threshold": 0.5
+    },
+    "logistic_regression": {
+      "pr_auc": 0.7876,
+      "roc_auc": 0.9779,
+      "f1": 0.5441,
+      "precision": 0.3854,
+      "recall": 0.925,
+      "brier_score": 0.0639,
+      "threshold": 0.5
+    }
+  },
+  "confusion_matrix": [
+    [
+      1867,
+      13
+    ],
+    [
+      32,
+      88
+    ]
+  ],
+  "train_samples": 8000,
+  "test_samples": 2000,
+  "churn_rate_train": 0.0597,
+  "churn_rate_test": 0.06
+}
