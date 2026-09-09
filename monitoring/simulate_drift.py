@@ -8,8 +8,8 @@ executes KS-test/PSI statistical evaluations, generates visual reports, and trig
 
 import argparse
 import logging
-from pathlib import Path
 import sys
+from pathlib import Path
 
 # Ensure project root is on sys.path for direct script execution
 project_root = Path(__file__).resolve().parent.parent

@@ -115,12 +115,15 @@ aiml-b2b-saas-churn-mlops/
 │   ├── alert_service.py           # Slack/Discord webhook alert dispatcher
 │   ├── drift_detector.py          # KS-test & PSI statistical drift engine + Evidently
 │   └── simulate_drift.py          # Production covariate shift simulation runner
+├── render.yaml                    # Render Blueprint IaC deployment configuration
 ├── src/
 │   ├── __init__.py
 │   ├── api/
 │   │   ├── __init__.py
-│   │   ├── main.py                # FastAPI microservice (/predict, /batch-predict, /health)
-│   │   └── schemas.py             # Pydantic v2 request/response validation schemas
+│   │   ├── main.py                # FastAPI microservice (/predict, /batch-predict, /health, /)
+│   │   ├── schemas.py             # Pydantic v2 request/response validation schemas
+│   │   └── templates/
+│   │       └── dashboard.html     # Account Health Command Center interactive UI
 │   ├── data/
 │   │   ├── __init__.py
 │   │   └── generate_telemetry.py  # Enterprise B2B SaaS telemetry generator
@@ -175,9 +178,16 @@ pip install -e .
 # Build and run the multi-stage production container
 docker compose up --build
 
-# Microservice will be live at: http://localhost:8000
+# Microservice & Dashboard live at: http://localhost:8000
 # OpenAPI Interactive Documentation: http://localhost:8000/docs
 ```
+
+### Option C: Live Cloud Deployment (Render Blueprint)
+
+This repository includes a `render.yaml` infrastructure-as-code blueprint for one-click deployment:
+1. Connect your GitHub repository to [Render](https://dashboard.render.com).
+2. Select **New + → Blueprint** and select `saas-churn-early-warning-mlops`.
+3. Render automatically triggers the multi-stage Docker build, attaches health check probes (`/health`), and deploys the live service with zero manual server configuration.
 
 ---
 
@@ -193,11 +203,16 @@ python src/data/generate_telemetry.py --samples 10000 --output data/sample_telem
 python src/models/train.py --data data/sample_telemetry.csv --artifacts models
 ```
 
-### 2. Start the Inference Microservice
+### 2. Start the Inference Microservice & Dashboard
 
 ```bash
 uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
 ```
+
+Navigate to:
+* **Interactive Command Center Dashboard**: `http://localhost:8000/`
+* **OpenAPI Interactive Documentation**: `http://localhost:8000/docs`
+* **Health Probe**: `http://localhost:8000/health`
 
 ### 3. Query the API
 
@@ -282,7 +297,7 @@ curl -X POST http://localhost:8000/predict \
 ### 4. Run Automated Test Suite & Linter
 
 ```bash
-# Run 16 comprehensive unit, integration, and latency tests with coverage
+# Run 19 comprehensive unit, integration, and latency tests with coverage
 pytest --cov=src --cov-report=term-missing
 
 # Run Ruff linter and style check

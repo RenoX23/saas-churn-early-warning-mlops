@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SaaS Churn Early-Warning — Account Health Dashboard</title>
+
+  <!-- Fonts: Space Grotesk (headings) + JetBrains Mono (data) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ========================================
+       DESIGN TOKENS
+       ======================================== */
+    :root {
+      /* Typography */
+      --font-display: 'Space Grotesk', system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+      /* Type Scale */
+      --text-xs: 0.75rem;
+      --text-sm: 0.875rem;
+      --text-base: 1rem;
+      --text-lg: 1.125rem;
+      --text-xl: 1.25rem;
+      --text-2xl: 1.5rem;
+      --text-3xl: 1.875rem;
+      --text-4xl: 2.25rem;
+
+      /* Spacing (8px grid) */
+      --space-1: 8px;
+      --space-2: 16px;
+      --space-3: 24px;
+      --space-4: 32px;
+      --space-5: 40px;
+      --space-6: 48px;
+      --space-8: 64px;
+      --space-10: 80px;
+      --space-12: 96px;
+
+      /* Border Radius */
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+
+      /* Shadows */
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+      --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
+
+      /* Transitions */
+      --transition-fast: 150ms ease;
+      --transition-base: 200ms ease;
+    }
+
+    /* Dark Theme (default) */
+    [data-theme="dark"] {
+      --color-bg: #0a0a0a;
+      --color-surface: #111111;
+      --color-surface-alt: #1a1a1a;
+      --color-surface-hover: #222222;
+      --color-border: rgba(255,255,255,0.08);
+      --color-border-hover: rgba(255,255,255,0.15);
+
+      --color-text-primary: #f0f0f0;
+      --color-text-secondary: #999999;
+      --color-text-muted: #555555;
+
+      --color-accent: #6366f1;
+      --color-accent-hover: #4f46e5;
+      --color-accent-subtle: rgba(99,102,241,0.12);
+
+      --color-success: #22c55e;
+      --color-success-subtle: rgba(34,197,94,0.12);
+      --color-warning: #f59e0b;
+      --color-warning-subtle: rgba(245,158,11,0.12);
+      --color-error: #ef4444;
+      --color-error-subtle: rgba(239,68,68,0.12);
+
+      --color-shap-risk: #ef4444;
+      --color-shap-protect: #22c55e;
+    }
+
+    /* Light Theme */
+    [data-theme="light"] {
+      --color-bg: #f5f5f5;
+      --color-surface: #ffffff;
+      --color-surface-alt: #f0f0f0;
+      --color-surface-hover: #e8e8e8;
+      --color-border: rgba(0,0,0,0.08);
+      --color-border-hover: rgba(0,0,0,0.15);
+
+      --color-text-primary: #0a0a0a;
+      --color-text-secondary: #555555;
+      --color-text-muted: #999999;
+
+      --color-accent: #4f46e5;
+      --color-accent-hover: #4338ca;
+      --color-accent-subtle: rgba(79,70,229,0.08);
+
+      --color-success: #16a34a;
+      --color-success-subtle: rgba(22,163,74,0.08);
+      --color-warning: #d97706;
+      --color-warning-subtle: rgba(217,119,6,0.08);
+      --color-error: #dc2626;
+      --color-error-subtle: rgba(220,38,38,0.08);
+
+      --color-shap-risk: #dc2626;
+      --color-shap-protect: #16a34a;
+    }
+
+    /* ========================================
+       BASE RESET & TYPOGRAPHY
+       ======================================== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html {
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      font-family: var(--font-display);
+      background: var(--color-bg);
+      color: var(--color-text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+      font-family: var(--font-display);
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+
+    code, .mono {
+      font-family: var(--font-mono);
+    }
+
+    a { color: var(--color-accent); text-decoration: none; }
+    a:hover { color: var(--color-accent-hover); }
+
+    /* ========================================
+       LAYOUT
+       ======================================== */
+    .container {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 0 var(--space-3);
+    }
+
+    /* ========================================
+       NAV
+       ======================================== */
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(10,10,10,0.85);
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      border-bottom: 1px solid var(--color-border);
+      padding: var(--space-2) 0;
+    }
+
+    [data-theme="light"] .nav {
+      background: rgba(245,245,245,0.85);
+    }
+
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-2);
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
+    }
+
+    .nav-brand-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--color-accent);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: var(--text-lg);
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .nav-brand-text {
+      font-size: var(--text-base);
+      font-weight: 600;
+      color: var(--color-text-primary);
+    }
+
+    .nav-brand-text span {
+      color: var(--color-text-secondary);
+      font-weight: 400;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+
+    .theme-toggle {
+      background: var(--color-surface-alt);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      padding: 6px 12px;
+      cursor: pointer;
+      font-family: var(--font-display);
+      font-size: var(--text-sm);
+      color: var(--color-text-secondary);
+      transition: all var(--transition-fast);
+    }
+
+    .theme-toggle:hover {
+      border-color: var(--color-border-hover);
+      color: var(--color-text-primary);
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: var(--text-xs);
+      font-family: var(--font-mono);
+      color: var(--color-success);
+      background: var(--color-success-subtle);
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+
+    .status-dot {
+      width: 6px; height: 6px;
+      background: var(--color-success);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* ========================================
+       HERO
+       ======================================== */
+    .hero {
+      padding: var(--space-6) 0 var(--space-4);
+    }
+
+    .hero h1 {
+      font-size: var(--text-3xl);
+      margin-bottom: var(--space-1);
+    }
+
+    .hero h1 .accent { color: var(--color-accent); }
+
+    .hero-sub {
+      font-size: var(--text-base);
+      color: var(--color-text-secondary);
+      max-width: 680px;
+    }
+
+    /* ========================================
+       METRICS ROW
+       ======================================== */
+    .metrics-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: var(--space-2);
+      margin-bottom: var(--space-4);
+    }
+
+    .metric-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--space-2) var(--space-3);
+      transition: border-color var(--transition-fast);
+    }
+
+    .metric-card:hover {
+      border-color: var(--color-border-hover);
+    }
+
+    .metric-label {
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    .metric-value {
+      font-family: var(--font-mono);
+      font-size: var(--text-2xl);
+      font-weight: 600;
+    }
+
+    .metric-sub {
+      font-size: var(--text-xs);
+      color: var(--color-text-secondary);
+      font-family: var(--font-mono);
+      margin-top: 2px;
+    }
+
+    /* ========================================
+       PANELS GRID
+       ======================================== */
+    .panels {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-3);
+      margin-bottom: var(--space-6);
+    }
+
+    .panel {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .panel-full { grid-column: 1 / -1; }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-2) var(--space-3);
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .panel-title {
+      font-size: var(--text-base);
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
+    }
+
+    .panel-title-icon {
+      font-size: var(--text-lg);
+    }
+
+    .panel-body {
+      padding: var(--space-3);
+    }
+
+    /* ========================================
+       ACCOUNT TABLE
+       ======================================== */
+    .table-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .account-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: var(--text-sm);
+    }
+
+    .account-table th {
+      text-align: left;
+      font-size: var(--text-xs);
+      font-weight: 500;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: var(--space-1) var(--space-2);
+      border-bottom: 1px solid var(--color-border);
+      white-space: nowrap;
+    }
+
+    .account-table td {
+      padding: 10px var(--space-2);
+      border-bottom: 1px solid var(--color-border);
+      white-space: nowrap;
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+    }
+
+    .account-table tbody tr {
+      cursor: pointer;
+      transition: background var(--transition-fast);
+    }
+
+    .account-table tbody tr:hover {
+      background: var(--color-surface-hover);
+    }
+
+    .account-table tbody tr.selected {
+      background: var(--color-accent-subtle);
+    }
+
+    .risk-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: var(--text-xs);
+      font-weight: 600;
+      font-family: var(--font-mono);
+    }
+
+    .risk-CRITICAL {
+      background: var(--color-error-subtle);
+      color: var(--color-error);
+    }
+
+    .risk-ELEVATED {
+      background: var(--color-warning-subtle);
+      color: var(--color-warning);
+    }
+
+    .risk-NOMINAL {
+      background: var(--color-success-subtle);
+      color: var(--color-success);
+    }
+
+    /* ========================================
+       SHAP WATERFALL
+       ======================================== */
+    .shap-placeholder {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 200px;
+      color: var(--color-text-muted);
+      font-size: var(--text-sm);
+    }
+
+    .shap-driver {
+      margin-bottom: var(--space-2);
+    }
+
+    .shap-driver:last-child { margin-bottom: 0; }
+
+    .shap-driver-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .shap-driver-name {
+      font-size: var(--text-sm);
+      font-weight: 500;
+    }
+
+    .shap-driver-value {
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      color: var(--color-text-secondary);
+    }
+
+    .shap-bar-track {
+      width: 100%;
+      height: 28px;
+      background: var(--color-surface-alt);
+      border-radius: var(--radius-sm);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .shap-bar-fill {
+      height: 100%;
+      border-radius: var(--radius-sm);
+      transition: width var(--transition-base);
+      display: flex;
+      align-items: center;
+      padding: 0 var(--space-1);
+    }
+
+    .shap-bar-fill.risk {
+      background: linear-gradient(90deg, var(--color-shap-risk), rgba(239,68,68,0.6));
+    }
+
+    .shap-bar-fill.protect {
+      background: linear-gradient(90deg, var(--color-shap-protect), rgba(34,197,94,0.6));
+    }
+
+    .shap-bar-label {
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      color: #fff;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .shap-recommendation {
+      font-size: var(--text-xs);
+      color: var(--color-text-secondary);
+      margin-top: 4px;
+      padding-left: var(--space-1);
+      border-left: 2px solid var(--color-border);
+    }
+
+    .shap-direction-badge {
+      font-size: 10px;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      padding: 1px 6px;
+      border-radius: 8px;
+    }
+
+    .shap-direction-badge.risk {
+      background: var(--color-error-subtle);
+      color: var(--color-error);
+    }
+
+    .shap-direction-badge.protect {
+      background: var(--color-success-subtle);
+      color: var(--color-success);
+    }
+
+    /* ========================================
+       WHAT-IF SIMULATOR
+       ======================================== */
+    .simulator-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-2) var(--space-4);
+    }
+
+    .sim-control {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .sim-control label {
+      font-size: var(--text-xs);
+      font-weight: 500;
+      color: var(--color-text-secondary);
+    }
+
+    .sim-control .sim-input-row {
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
+    }
+
+    .sim-control input[type="range"] {
+      flex: 1;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 4px;
+      background: var(--color-surface-alt);
+      border-radius: 2px;
+      outline: none;
+    }
+
+    .sim-control input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      background: var(--color-accent);
+      border-radius: 50%;
+      cursor: pointer;
+      transition: transform var(--transition-fast);
+    }
+
+    .sim-control input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    .sim-control input[type="range"]::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      background: var(--color-accent);
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+    }
+
+    .sim-value {
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      color: var(--color-accent);
+      min-width: 44px;
+      text-align: right;
+      font-weight: 600;
+    }
+
+    .sim-actions {
+      margin-top: var(--space-3);
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+
+    .btn {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: var(--text-sm);
+      padding: 10px 20px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--color-accent);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: var(--color-accent-hover);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--color-text-secondary);
+      border: 1px solid var(--color-border);
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--color-border-hover);
+      color: var(--color-text-primary);
+    }
+
+    /* Simulator Result */
+    .sim-result {
+      margin-top: var(--space-3);
+      padding: var(--space-3);
+      background: var(--color-surface-alt);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--color-border);
+      display: none;
+    }
+
+    .sim-result.visible { display: block; }
+
+    .sim-result-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-1);
+    }
+
+    .sim-result-row:last-child { margin-bottom: 0; }
+
+    .sim-result-label {
+      font-size: var(--text-sm);
+      color: var(--color-text-secondary);
+    }
+
+    .sim-result-value {
+      font-family: var(--font-mono);
+      font-size: var(--text-xl);
+      font-weight: 600;
+    }
+
+    /* Probability gauge */
+    .prob-gauge {
+      width: 100%;
+      height: 8px;
+      background: var(--color-surface);
+      border-radius: 4px;
+      margin-top: var(--space-1);
+      overflow: hidden;
+    }
+
+    .prob-gauge-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 400ms ease, background 400ms ease;
+    }
+
+    /* ========================================
+       FOOTER
+       ======================================== */
+    .footer {
+      border-top: 1px solid var(--color-border);
+      padding: var(--space-3) 0;
+      margin-top: var(--space-4);
+    }
+
+    .footer-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+    }
+
+    .footer-links {
+      display: flex;
+      gap: var(--space-2);
+    }
+
+    .footer-links a {
+      color: var(--color-text-secondary);
+      transition: color var(--transition-fast);
+    }
+
+    .footer-links a:hover {
+      color: var(--color-accent);
+    }
+
+    /* ========================================
+       LOADING STATE
+       ======================================== */
+    .loading-shimmer {
+      background: linear-gradient(90deg,
+        var(--color-surface-alt) 25%,
+        var(--color-surface-hover) 50%,
+        var(--color-surface-alt) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s ease-in-out infinite;
+      border-radius: var(--radius-sm);
+      height: 20px;
+      margin-bottom: 8px;
+    }
+
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+
+    /* ========================================
+       RESPONSIVE
+       ======================================== */
+    @media (max-width: 768px) {
+      .panels { grid-template-columns: 1fr; }
+      .simulator-grid { grid-template-columns: 1fr; }
+      .hero h1 { font-size: var(--text-2xl); }
+      .metrics-row { grid-template-columns: repeat(2, 1fr); }
+      .nav-brand-text span { display: none; }
+      .footer-inner { flex-direction: column; gap: var(--space-1); }
+    }
+
+    @media (max-width: 375px) {
+      .metrics-row { grid-template-columns: 1fr; }
+      .container { padding: 0 var(--space-2); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav class="nav">
+    <div class="container nav-inner">
+      <div class="nav-brand">
+        <div class="nav-brand-icon">⚡</div>
+        <div class="nav-brand-text">ChurnGuard <span>MLOps Dashboard</span></div>
+      </div>
+      <div class="nav-actions">
+        <div class="status-badge">
+          <span class="status-dot"></span>
+          <span>Model Active</span>
+        </div>
+        <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+          <span id="theme-icon">☀️</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="container">
+      <h1>Account Health <span class="accent">Command Center</span></h1>
+      <p class="hero-sub">
+        Real-time churn risk scoring with SHAP explainability, interactive what-if simulation,
+        and automated covariate drift monitoring.
+      </p>
+    </div>
+  </section>
+
+  <!-- METRICS ROW -->
+  <section class="container">
+    <div class="metrics-row" id="metricsRow">
+      <div class="metric-card">
+        <div class="metric-label">PR-AUC</div>
+        <div class="metric-value mono" id="metricPrAuc">—</div>
+        <div class="metric-sub">Target ≥ 0.84</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">ROC-AUC</div>
+        <div class="metric-value mono" id="metricRocAuc">—</div>
+        <div class="metric-sub">Discrimination power</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">F1 Score</div>
+        <div class="metric-value mono" id="metricF1">—</div>
+        <div class="metric-sub">τ* threshold optimized</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Brier Score</div>
+        <div class="metric-value mono" id="metricBrier">—</div>
+        <div class="metric-sub">Calibration quality</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Accounts Scored</div>
+        <div class="metric-value mono" id="metricTotal">—</div>
+        <div class="metric-sub" id="metricAtRisk">—</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Inference Latency</div>
+        <div class="metric-value mono" id="metricLatency">—</div>
+        <div class="metric-sub">P50 batch scoring</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MAIN PANELS -->
+  <section class="container">
+    <div class="panels">
+
+      <!-- PANEL 1: Account Health Table -->
+      <div class="panel panel-full">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span class="panel-title-icon">📊</span>
+            Account Risk Portfolio
+          </div>
+          <button class="btn btn-ghost" onclick="loadAccounts()" style="font-size:var(--text-xs);padding:6px 12px;">
+            ↻ Refresh
+          </button>
+        </div>
+        <div class="panel-body">
+          <div class="table-wrap">
+            <table class="account-table">
+              <thead>
+                <tr>
+                  <th>Account</th>
+                  <th>Tier</th>
+                  <th>MRR</th>
+                  <th>Churn Prob</th>
+                  <th>Risk Level</th>
+                  <th>Top Risk Driver</th>
+                  <th>Latency</th>
+                </tr>
+              </thead>
+              <tbody id="accountTableBody">
+                <tr><td colspan="7"><div class="loading-shimmer" style="width:100%"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL 2: SHAP Waterfall -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span class="panel-title-icon">🔍</span>
+            SHAP Risk Attribution
+          </div>
+          <span id="shapAccountLabel" class="mono" style="font-size:var(--text-xs);color:var(--color-text-muted);">
+            Select an account →
+          </span>
+        </div>
+        <div class="panel-body" id="shapPanel">
+          <div class="shap-placeholder">
+            Click any account row to view its risk driver attribution
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL 3: What-If Simulator -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span class="panel-title-icon">🎛️</span>
+            What-If Churn Simulator
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="simulator-grid">
+            <div class="sim-control">
+              <label for="simSeatUtil">Seat Utilization Ratio</label>
+              <div class="sim-input-row">
+                <input type="range" id="simSeatUtil" min="0.05" max="1.0" step="0.01" value="0.45" oninput="updateSliderDisplay(this)" />
+                <span class="sim-value" id="simSeatUtilVal">0.45</span>
+              </div>
+            </div>
+            <div class="sim-control">
+              <label for="simLoginDecay">Login Decay Ratio</label>
+              <div class="sim-input-row">
+                <input type="range" id="simLoginDecay" min="0.10" max="1.0" step="0.01" value="0.80" oninput="updateSliderDisplay(this)" />
+                <span class="sim-value" id="simLoginDecayVal">0.80</span>
+              </div>
+            </div>
+            <div class="sim-control">
+              <label for="simP1Tickets">P1 Tickets (30d)</label>
+              <div class="sim-input-row">
+                <input type="range" id="simP1Tickets" min="0" max="10" step="1" value="1" oninput="updateSliderDisplay(this)" />
+                <span class="sim-value" id="simP1TicketsVal">1</span>
+              </div>
+            </div>
+            <div class="sim-control">
+              <label for="simFeatureAdopt">Feature Adoption Score</label>
+              <div class="sim-input-row">
+                <input type="range" id="simFeatureAdopt" min="0.0" max="1.0" step="0.01" value="0.60" oninput="updateSliderDisplay(this)" />
+                <span class="sim-value" id="simFeatureAdoptVal">0.60</span>
+              </div>
+            </div>
+            <div class="sim-control">
+              <label for="simCSM">CSM Touchpoints (90d)</label>
+              <div class="sim-input-row">
+                <input type="range" id="simCSM" min="0" max="12" step="1" value="3" oninput="updateSliderDisplay(this)" />
+                <span class="sim-value" id="simCSMVal">3</span>
+              </div>
+            </div>
+            <div class="sim-control">
+              <label for="simBilling">Billing Overdue Days</label>
+              <div class="sim-input-row">
+                <input type="range" id="simBilling" min="0" max="90" step="1" value="0" oninput="updateSliderDisplay(this)" />
+                <span class="sim-value" id="simBillingVal">0</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="sim-actions">
+            <button class="btn btn-primary" id="simRunBtn" onclick="runSimulation()">
+              Recalculate Risk
+            </button>
+            <button class="btn btn-ghost" onclick="resetSliders()">
+              Reset Defaults
+            </button>
+          </div>
+
+          <div class="sim-result" id="simResult">
+            <div class="sim-result-row">
+              <span class="sim-result-label">Churn Probability</span>
+              <span class="sim-result-value" id="simResultProb">—</span>
+            </div>
+            <div class="prob-gauge">
+              <div class="prob-gauge-fill" id="simResultGauge" style="width:0%"></div>
+            </div>
+            <div class="sim-result-row" style="margin-top:var(--space-2)">
+              <span class="sim-result-label">Risk Level</span>
+              <span id="simResultRisk">—</span>
+            </div>
+            <div class="sim-result-row">
+              <span class="sim-result-label">Inference Latency</span>
+              <span class="sim-result-value mono" id="simResultLatency" style="font-size:var(--text-sm)">—</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container footer-inner">
+      <span>B2B SaaS Churn Early-Warning MLOps · LightGBM + SHAP + FastAPI + Evidently</span>
+      <div class="footer-links">
+        <a href="/docs" target="_blank">API Docs</a>
+        <a href="/health">Health Probe</a>
+        <a href="https://github.com/RenoX23/saas-churn-early-warning-mlops" target="_blank">GitHub</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    /* ========================================
+       THEME TOGGLE
+       ======================================== */
+    function getStoredTheme() {
+      return localStorage.getItem('churnguard-theme') || 'dark';
+    }
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      document.getElementById('theme-icon').textContent = theme === 'dark' ? '☀️' : '🌙';
+      localStorage.setItem('churnguard-theme', theme);
+    }
+
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme');
+      applyTheme(current === 'dark' ? 'light' : 'dark');
+    }
+
+    // Apply stored theme on load
+    applyTheme(getStoredTheme());
+
+    /* ========================================
+       STATE
+       ======================================== */
+    let accountsData = [];
+    let selectedAccountIndex = null;
+
+    /* ========================================
+       LOAD MODEL METADATA
+       ======================================== */
+    async function loadMetadata() {
+      try {
+        const res = await fetch('/api/model-metadata');
+        const data = await res.json();
+        const m = data.test_metrics;
+        document.getElementById('metricPrAuc').textContent = m.pr_auc.toFixed(4);
+        document.getElementById('metricRocAuc').textContent = m.roc_auc.toFixed(4);
+        document.getElementById('metricF1').textContent = m.f1.toFixed(4);
+        document.getElementById('metricBrier').textContent = m.brier_score.toFixed(4);
+      } catch (e) {
+        console.error('Failed to load metadata:', e);
+      }
+    }
+
+    /* ========================================
+       LOAD SAMPLE ACCOUNTS
+       ======================================== */
+    async function loadAccounts() {
+      const tbody = document.getElementById('accountTableBody');
+      tbody.innerHTML = '<tr><td colspan="7"><div class="loading-shimmer" style="width:100%"></div><div class="loading-shimmer" style="width:80%"></div><div class="loading-shimmer" style="width:90%"></div></td></tr>';
+
+      try {
+        const res = await fetch('/api/sample-accounts');
+        const data = await res.json();
+        accountsData = data.predictions;
+
+        // Update summary metrics
+        document.getElementById('metricTotal').textContent = data.total_accounts;
+        document.getElementById('metricAtRisk').textContent = data.at_risk_count + ' accounts at risk';
+
+        const latencies = accountsData.map(p => p.inference_latency_ms);
+        const medianLatency = latencies.sort((a,b) => a-b)[Math.floor(latencies.length/2)];
+        document.getElementById('metricLatency').textContent = medianLatency.toFixed(1) + 'ms';
+
+        renderAccountTable();
+      } catch (e) {
+        console.error('Failed to load accounts:', e);
+        tbody.innerHTML = '<tr><td colspan="7" style="color:var(--color-error)">Failed to load accounts. Check API connection.</td></tr>';
+      }
+    }
+
+    function renderAccountTable() {
+      const tbody = document.getElementById('accountTableBody');
+      tbody.innerHTML = '';
+
+      // Sort: CRITICAL first, then ELEVATED, then NOMINAL
+      const riskOrder = { 'CRITICAL': 0, 'ELEVATED': 1, 'NOMINAL': 2 };
+      const sorted = [...accountsData].sort((a, b) => {
+        const ord = riskOrder[a.risk_level] - riskOrder[b.risk_level];
+        if (ord !== 0) return ord;
+        return b.churn_probability - a.churn_probability;
+      });
+      accountsData = sorted;
+
+      sorted.forEach((acct, idx) => {
+        const tr = document.createElement('tr');
+        if (idx === selectedAccountIndex) tr.classList.add('selected');
+        tr.onclick = () => selectAccount(idx);
+
+        const topDriver = acct.top_risk_drivers && acct.top_risk_drivers.length > 0
+          ? acct.top_risk_drivers[0].display_name
+          : '—';
+
+        tr.innerHTML = `
+          <td style="font-weight:600;color:var(--color-text-primary)">${acct.account_id}</td>
+          <td>${acct.contract_tier || '—'}</td>
+          <td>$${(acct.monthly_recurring_revenue || 0).toLocaleString()}</td>
+          <td style="font-weight:600">${(acct.churn_probability * 100).toFixed(1)}%</td>
+          <td><span class="risk-badge risk-${acct.risk_level}">${getRiskIcon(acct.risk_level)} ${acct.risk_level}</span></td>
+          <td style="font-family:var(--font-display);font-size:var(--text-xs)">${topDriver}</td>
+          <td>${acct.inference_latency_ms.toFixed(1)}ms</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function getRiskIcon(level) {
+      switch(level) {
+        case 'CRITICAL': return '🔴';
+        case 'ELEVATED': return '🟡';
+        case 'NOMINAL': return '🟢';
+        default: return '⚪';
+      }
+    }
+
+    /* ========================================
+       SHAP PANEL
+       ======================================== */
+    function selectAccount(idx) {
+      selectedAccountIndex = idx;
+      renderAccountTable();
+
+      const acct = accountsData[idx];
+      document.getElementById('shapAccountLabel').textContent = acct.account_id;
+
+      const panel = document.getElementById('shapPanel');
+      const drivers = acct.top_risk_drivers || [];
+
+      if (drivers.length === 0) {
+        panel.innerHTML = '<div class="shap-placeholder">No risk drivers available for this account</div>';
+        return;
+      }
+
+      const maxAbsShap = Math.max(...drivers.map(d => Math.abs(d.shap_value)), 0.01);
+
+      panel.innerHTML = drivers.map(d => {
+        const isRisk = d.direction === 'INCREASES_CHURN_RISK';
+        const barClass = isRisk ? 'risk' : 'protect';
+        const dirLabel = isRisk ? '↑ RISK' : '↓ SAFE';
+        const barWidth = Math.max(8, (Math.abs(d.shap_value) / maxAbsShap) * 100);
+
+        return `
+          <div class="shap-driver">
+            <div class="shap-driver-header">
+              <span class="shap-driver-name">${d.display_name}</span>
+              <span class="shap-direction-badge ${barClass}">${dirLabel}</span>
+            </div>
+            <div class="shap-bar-track">
+              <div class="shap-bar-fill ${barClass}" style="width:${barWidth}%">
+                <span class="shap-bar-label">SHAP: ${d.shap_value > 0 ? '+' : ''}${d.shap_value.toFixed(4)}</span>
+              </div>
+            </div>
+            <div class="shap-driver-value">Raw Value: ${d.raw_value}</div>
+            <div class="shap-recommendation">💡 ${d.actionable_recommendation}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    /* ========================================
+       WHAT-IF SIMULATOR
+       ======================================== */
+    function updateSliderDisplay(el) {
+      const valSpan = document.getElementById(el.id + 'Val');
+      const step = parseFloat(el.step);
+      valSpan.textContent = step < 1 ? parseFloat(el.value).toFixed(2) : el.value;
+    }
+
+    function resetSliders() {
+      const defaults = {
+        simSeatUtil: 0.45,
+        simLoginDecay: 0.80,
+        simP1Tickets: 1,
+        simFeatureAdopt: 0.60,
+        simCSM: 3,
+        simBilling: 0
+      };
+
+      Object.entries(defaults).forEach(([id, val]) => {
+        const el = document.getElementById(id);
+        el.value = val;
+        updateSliderDisplay(el);
+      });
+
+      document.getElementById('simResult').classList.remove('visible');
+    }
+
+    async function runSimulation() {
+      const btn = document.getElementById('simRunBtn');
+      btn.disabled = true;
+      btn.textContent = 'Scoring...';
+
+      const payload = {
+        account_id: 'SIM-WHATIF',
+        contract_tier: 'Mid-Market',
+        contract_duration_months: 12,
+        tenure_months: 18,
+        monthly_recurring_revenue: 8500.0,
+        licensed_seats: 50,
+        active_users_last_30d: Math.round(50 * parseFloat(document.getElementById('simSeatUtil').value)),
+        seat_utilization_ratio: parseFloat(document.getElementById('simSeatUtil').value),
+        login_frequency_last_30d: parseFloat(document.getElementById('simLoginDecay').value) * 12,
+        login_decay_ratio: parseFloat(document.getElementById('simLoginDecay').value),
+        feature_adoption_score: parseFloat(document.getElementById('simFeatureAdopt').value),
+        support_tickets_last_90d: parseInt(document.getElementById('simP1Tickets').value) * 3 + 5,
+        p1_tickets_last_30d: parseInt(document.getElementById('simP1Tickets').value),
+        ticket_escalation_velocity: parseInt(document.getElementById('simP1Tickets').value) * 0.8,
+        csm_touchpoints_last_90d: parseInt(document.getElementById('simCSM').value),
+        billing_overdue_days: parseInt(document.getElementById('simBilling').value),
+        nps_score: 35.0
+      };
+
+      try {
+        const res = await fetch('/predict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+
+        const resultEl = document.getElementById('simResult');
+        resultEl.classList.add('visible');
+
+        const prob = data.churn_probability;
+        document.getElementById('simResultProb').textContent = (prob * 100).toFixed(2) + '%';
+        document.getElementById('simResultLatency').textContent = data.inference_latency_ms.toFixed(1) + 'ms';
+
+        // Gauge
+        const gauge = document.getElementById('simResultGauge');
+        gauge.style.width = (prob * 100) + '%';
+        if (prob >= 0.70) {
+          gauge.style.background = 'var(--color-error)';
+        } else if (prob >= data.optimal_threshold) {
+          gauge.style.background = 'var(--color-warning)';
+        } else {
+          gauge.style.background = 'var(--color-success)';
+        }
+
+        // Risk badge
+        const riskEl = document.getElementById('simResultRisk');
+        riskEl.innerHTML = `<span class="risk-badge risk-${data.risk_level}">${getRiskIcon(data.risk_level)} ${data.risk_level}</span>`;
+
+      } catch(e) {
+        console.error('Simulation failed:', e);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Recalculate Risk';
+      }
+    }
+
+    /* ========================================
+       INIT
+       ======================================== */
+    document.addEventListener('DOMContentLoaded', () => {
+      loadMetadata();
+      loadAccounts();
+    });
+  </script>
+</body>
+</html>

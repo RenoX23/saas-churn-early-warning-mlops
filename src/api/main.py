@@ -2,20 +2,23 @@
 FastAPI Production Inference Microservice for B2B SaaS Churn Early-Warning.
 
 Provides real-time scoring, SHAP local explainability, batch inference,
-and Kubernetes-compatible health/readiness probes.
+interactive dashboard, and Kubernetes-compatible health/readiness probes.
 """
 
-from contextlib import asynccontextmanager
 import json
 import logging
-from pathlib import Path
 import time
-from typing import List
+from contextlib import asynccontextmanager
+from pathlib import Path
+from typing import Any, Dict, List
 
-from fastapi import FastAPI, HTTPException, status
-from fastapi.middleware.cors import CORSMiddleware
 import joblib
+import numpy as np
 import pandas as pd
+from fastapi import FastAPI, HTTPException, Request, status
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 
 from src.api.schemas import (
     AccountTelemetryInput,
@@ -32,7 +35,11 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 # State container for serving
-state = {}
+state: Dict[str, Any] = {}
+
+# Template directory for dashboard
+TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
+templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
 
 @asynccontextmanager
@@ -89,6 +96,123 @@ app.add_middleware(
 )
 
 
+# ---------------------------------------------------------------------------
+# Dashboard Endpoints
+# ---------------------------------------------------------------------------
+
+
+@app.get("/", response_class=HTMLResponse, tags=["Dashboard"], include_in_schema=False)
+async def dashboard(request: Request):
+    """Serve the interactive Account Health Command Center dashboard."""
+    return templates.TemplateResponse(request=request, name="dashboard.html", context={})
+
+
+@app.get("/api/model-metadata", tags=["Dashboard"], summary="Model performance metrics")
+async def model_metadata():
+    """Return model training/test metrics and metadata for dashboard display."""
+    meta = state.get("metadata", {})
+    return {
+        "model_version": meta.get("model_version", "1.0.0"),
+        "model_type": meta.get("model_type", "LightGBMClassifier"),
+        "optimal_threshold": meta.get("optimal_threshold", 0.5),
+        "test_metrics": meta.get("test_metrics", {}),
+        "train_metrics": meta.get("train_metrics", {}),
+        "baselines": meta.get("baselines", {}),
+        "churn_rate_test": meta.get("churn_rate_test", 0.0),
+    }
+
+
+@app.get(
+    "/api/sample-accounts",
+    response_model=BatchPredictionResponse,
+    tags=["Dashboard"],
+    summary="Generate and score sample accounts for dashboard display",
+)
+async def sample_accounts():
+    """
+    Generate 20 diverse synthetic accounts spanning all risk tiers,
+    score them through the full pipeline, and return batch results
+    for the Account Health Command Center table.
+    """
+    rng = np.random.default_rng(seed=int(time.time()) % 10000)
+    accounts_raw: List[Dict[str, Any]] = []
+
+    tier_configs = {
+        "Enterprise": {"mrr_range": (15000, 85000), "seats_range": (150, 800)},
+        "Mid-Market": {"mrr_range": (5000, 25000), "seats_range": (30, 200)},
+        "SMB": {"mrr_range": (800, 6000), "seats_range": (5, 40)},
+    }
+
+    tiers = rng.choice(["Enterprise", "Mid-Market", "SMB"], size=20, p=[0.25, 0.45, 0.30])
+
+    for i, tier in enumerate(tiers):
+        cfg = tier_configs[tier]
+        mrr = round(float(rng.uniform(*cfg["mrr_range"])), 2)
+        seats = int(rng.integers(*cfg["seats_range"]))
+        seat_util = round(float(rng.uniform(0.15, 0.95)), 2)
+        active_users = max(1, int(seats * seat_util))
+        login_decay = round(float(rng.uniform(0.20, 1.0)), 2)
+        login_freq = round(float(rng.uniform(1.0, 20.0)), 1)
+        feature_adopt = round(float(rng.uniform(0.10, 0.95)), 2)
+        tickets_90d = int(rng.integers(0, 30))
+        p1_tickets = int(rng.integers(0, 8))
+        escalation_vel = round(float(rng.uniform(0.0, 5.0)), 2)
+        csm_touch = int(rng.integers(0, 10))
+        billing_overdue = int(rng.choice([0, 0, 0, 5, 10, 18, 25, 35, 50]))
+        contract_months = int(rng.choice([12, 12, 24, 36]))
+        tenure = int(rng.integers(2, 48))
+        nps = round(float(rng.uniform(-50, 80)), 0) if rng.random() > 0.15 else None
+
+        accounts_raw.append(
+            {
+                "account_id": f"ACC-{10000 + i}",
+                "contract_tier": tier,
+                "contract_duration_months": contract_months,
+                "tenure_months": tenure,
+                "monthly_recurring_revenue": mrr,
+                "licensed_seats": seats,
+                "active_users_last_30d": active_users,
+                "seat_utilization_ratio": seat_util,
+                "login_frequency_last_30d": login_freq,
+                "login_decay_ratio": login_decay,
+                "feature_adoption_score": feature_adopt,
+                "support_tickets_last_90d": tickets_90d,
+                "p1_tickets_last_30d": p1_tickets,
+                "ticket_escalation_velocity": escalation_vel,
+                "csm_touchpoints_last_90d": csm_touch,
+                "billing_overdue_days": billing_overdue,
+                "nps_score": nps,
+            }
+        )
+
+    # Score all accounts through the pipeline
+    t0 = time.perf_counter()
+    predictions: List[PredictionResponse] = []
+
+    for raw in accounts_raw:
+        payload = AccountTelemetryInput(**raw)
+        pred = _score_single_account(payload)
+        predictions.append(pred)
+
+    total = len(predictions)
+    at_risk = sum(1 for p in predictions if p.predicted_churn)
+    mean_prob = round(sum(p.churn_probability for p in predictions) / max(total, 1), 4)
+    total_latency = round((time.perf_counter() - t0) * 1000.0, 2)
+
+    return BatchPredictionResponse(
+        total_accounts=total,
+        at_risk_count=at_risk,
+        mean_churn_probability=mean_prob,
+        total_latency_ms=total_latency,
+        predictions=predictions,
+    )
+
+
+# ---------------------------------------------------------------------------
+# System Endpoints
+# ---------------------------------------------------------------------------
+
+
 @app.get(
     "/health",
     response_model=HealthResponse,
@@ -114,6 +238,11 @@ async def health_check():
         features_count=len(state["transformer"].feature_names_),
         uptime_seconds=uptime,
     )
+
+
+# ---------------------------------------------------------------------------
+# Inference Helpers
+# ---------------------------------------------------------------------------
 
 
 def _score_single_account(payload: AccountTelemetryInput) -> PredictionResponse:
@@ -157,7 +286,14 @@ def _score_single_account(payload: AccountTelemetryInput) -> PredictionResponse:
         optimal_threshold=round(optimal_th, 4),
         top_risk_drivers=risk_drivers,
         inference_latency_ms=latency_ms,
+        contract_tier=payload.contract_tier,
+        monthly_recurring_revenue=payload.monthly_recurring_revenue,
     )
+
+
+# ---------------------------------------------------------------------------
+# Inference Endpoints
+# ---------------------------------------------------------------------------
 
 
 @app.post(

@@ -2,8 +2,8 @@
 Integration and performance tests for FastAPI inference microservice.
 """
 
-from fastapi.testclient import TestClient
 import pytest
+from fastapi.testclient import TestClient
 
 from src.api.main import app
 
@@ -147,3 +147,40 @@ def test_batch_predict_endpoint(client):
     assert len(data["predictions"]) == 5
     assert "mean_churn_probability" in data
     assert "total_latency_ms" in data
+
+
+def test_dashboard_endpoint_serves_html(client):
+    """Verify GET / returns interactive HTML dashboard."""
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "text/html" in response.headers["content-type"]
+    html = response.text
+    assert "ChurnGuard" in html
+    assert "Account Health" in html
+    assert "What-If Churn Simulator" in html
+    assert "SHAP Risk Attribution" in html
+
+
+def test_model_metadata_endpoint(client):
+    """Verify GET /api/model-metadata returns model performance stats."""
+    response = client.get("/api/model-metadata")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["model_type"] == "LightGBMClassifier"
+    assert "test_metrics" in data
+    assert data["test_metrics"]["pr_auc"] > 0.84
+    assert data["test_metrics"]["roc_auc"] > 0.90
+
+
+def test_sample_accounts_endpoint(client):
+    """Verify GET /api/sample-accounts generates and scores portfolio accounts."""
+    response = client.get("/api/sample-accounts")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_accounts"] == 20
+    assert len(data["predictions"]) == 20
+    first = data["predictions"][0]
+    assert "account_id" in first
+    assert "churn_probability" in first
+    assert "contract_tier" in first
+    assert "monthly_recurring_revenue" in first

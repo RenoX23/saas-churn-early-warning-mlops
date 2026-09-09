@@ -42,6 +42,7 @@ mlartifacts/
 *.log
 evidently_reports/
 monitoring/reports/*.html
+monitoring/reports/*.json
 
 # Data Files (Keep samples only)
 data/*.csv

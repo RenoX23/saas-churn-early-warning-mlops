@@ -1,0 +1,16 @@
+# Render Blueprint — Infrastructure as Code for one-click deployment
+# https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: saas-churn-dashboard
+    runtime: docker
+    dockerfilePath: docker/Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: "8000"
+      - key: PYTHONUNBUFFERED
+        value: "1"

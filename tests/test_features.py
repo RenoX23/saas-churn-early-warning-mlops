@@ -2,9 +2,7 @@
 Unit tests for SaaS telemetry data generation and feature engineering pipeline.
 """
 
-import numpy as np
 import pandas as pd
-import pytest
 
 from src.data.generate_telemetry import generate_synthetic_telemetry
 from src.features.build_features import (

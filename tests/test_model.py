@@ -6,8 +6,6 @@ import json
 from pathlib import Path
 
 import joblib
-import numpy as np
-import pytest
 
 from src.models.train import train_pipeline
 
@@ -72,6 +70,7 @@ def test_train_pipeline_and_artifacts(tmp_path):
         "nps_score": -20.0,
     }
     import pandas as pd
+
     df_sample = pd.DataFrame([dummy_input])
     transformed = loaded_transformer.transform(df_sample)
     prob = loaded_model.predict_proba(transformed)[0, 1]

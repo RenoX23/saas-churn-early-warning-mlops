@@ -48,7 +48,11 @@ RUN groupadd -r appgroup && useradd -r -g appgroup -u 1001 -s /sbin/nologin appu
 # Copy application code, trained model artifacts, and project configs
 COPY src/ /app/src/
 COPY models/ /app/models/
+COPY monitoring/ /app/monitoring/
 COPY pyproject.toml /app/
+
+# Ensure monitoring reports directory exists and is writable
+RUN mkdir -p /app/monitoring/reports
 
 # Install the application in editable/packaged mode into the virtualenv
 RUN pip install --no-deps -e .
