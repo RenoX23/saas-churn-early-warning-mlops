@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "saas-churn-early-warning-mlops"
+version = "0.1.0"
+description = "B2B SaaS Account Health & Churn Early-Warning Microservice with Drift Alerting"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+    { name = "Renold Stephen" }
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+ignore = []
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = "-ra -q --cov=src"
+testpaths = ["tests"]
+pythonpath = ["."]
