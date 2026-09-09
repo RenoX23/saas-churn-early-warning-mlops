@@ -13,7 +13,7 @@
 
 ## 1. Business Problem & Executive Framing
 
-In enterprise subscription B2B SaaS, Customer Acquisition Costs (CAC) routinely exceed \$15,000 to \$50,000+ per account. When an enterprise account silently churns, the company suffers compounding Annual Recurring Revenue (ARR) leakage. 
+In enterprise subscription B2B SaaS, Customer Acquisition Costs (CAC) routinely exceed \$15,000 to \$50,000+ per account. When an enterprise account silently churns, the company suffers compounding Annual Recurring Revenue (ARR) leakage.
 
 Traditional churn prediction systems operate as **passive, offline batch jobs** (e.g. monthly scripts). By the time a batch job flags an account, the customer has typically already completed vendor procurement with a competitor and decided to terminate.
 

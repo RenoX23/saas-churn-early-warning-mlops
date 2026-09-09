@@ -2,8 +2,8 @@
 Integration and performance tests for FastAPI inference microservice.
 """
 
-import pytest
 from fastapi.testclient import TestClient
+import pytest
 
 from src.api.main import app
 

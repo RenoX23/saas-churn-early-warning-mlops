@@ -10,16 +10,16 @@ Trains LightGBM classifier with:
 """
 
 import argparse
+from datetime import datetime, timezone
 import json
 import logging
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
 import joblib
+from lightgbm import LGBMClassifier
 import numpy as np
 import pandas as pd
-from lightgbm import LGBMClassifier
 from sklearn.dummy import DummyClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (

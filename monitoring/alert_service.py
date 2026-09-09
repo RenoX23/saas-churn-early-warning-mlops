@@ -110,7 +110,9 @@ def send_drift_alert(
     persists alert payload to disk as an audit trail.
     """
     url = (
-        webhook_url or os.environ.get("SLACK_WEBHOOK_URL") or os.environ.get("DISCORD_WEBHOOK_URL")
+        webhook_url
+        or os.environ.get("SLACK_WEBHOOK_URL")
+        or os.environ.get("DISCORD_WEBHOOK_URL")
     )
     payload = build_slack_alert_payload(drift_results)
 

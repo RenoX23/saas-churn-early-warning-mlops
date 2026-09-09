@@ -3,7 +3,6 @@ Unit tests for SHAP TreeExplainer and risk driver extraction.
 """
 
 from pathlib import Path
-
 import joblib
 import pandas as pd
 import pytest

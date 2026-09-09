@@ -7,9 +7,10 @@ Monitors covariate shift across production inference windows against baseline tr
 - Generates interactive Evidently HTML drift reports and structured JSON alerts.
 """
 
+from dataclasses import dataclass
 import logging
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -106,22 +107,18 @@ class SaaSDriftDetector:
 
         # Segregate columns
         self.categorical_cols = [
-            col
-            for col in ["contract_tier", "contract_duration_months"]
+            col for col in ["contract_tier", "contract_duration_months"]
             if col in self.reference_df.columns
         ]
         self.continuous_cols = [
-            col
-            for col in self.reference_df.select_dtypes(include=[np.number]).columns
+            col for col in self.reference_df.select_dtypes(include=[np.number]).columns
             if col not in self.categorical_cols and col not in ["churn", "account_id"]
         ]
         logger.info(
             "Initialized SaaSDriftDetector: %d continuous features (KS-test alpha=%.2f), "
             "%d categorical features (PSI threshold=%.2f)",
-            len(self.continuous_cols),
-            self.ks_alpha,
-            len(self.categorical_cols),
-            self.psi_threshold,
+            len(self.continuous_cols), self.ks_alpha,
+            len(self.categorical_cols), self.psi_threshold,
         )
 
     def detect_drift(self, current_data: pd.DataFrame) -> Dict[str, Any]:
@@ -151,17 +148,15 @@ class SaaSDriftDetector:
                 }
 
                 if has_drifted:
-                    drifted_features.append(
-                        {
-                            "feature": col,
-                            "test": "KS-Test",
-                            "p_value": p_val,
-                            "statistic": ks_stat,
-                            "threshold": self.ks_alpha,
-                            "ref_mean": round(float(ref_series.mean()), 3),
-                            "cur_mean": round(float(cur_series.mean()), 3),
-                        }
-                    )
+                    drifted_features.append({
+                        "feature": col,
+                        "test": "KS-Test",
+                        "p_value": p_val,
+                        "statistic": ks_stat,
+                        "threshold": self.ks_alpha,
+                        "ref_mean": round(float(ref_series.mean()), 3),
+                        "cur_mean": round(float(cur_series.mean()), 3),
+                    })
 
         # 2. Categorical & Discrete Features (PSI)
         for col in self.categorical_cols:
@@ -180,14 +175,12 @@ class SaaSDriftDetector:
                 }
 
                 if has_drifted:
-                    drifted_features.append(
-                        {
-                            "feature": col,
-                            "test": "PSI",
-                            "statistic": psi_score,
-                            "threshold": self.psi_threshold,
-                        }
-                    )
+                    drifted_features.append({
+                        "feature": col,
+                        "test": "PSI",
+                        "statistic": psi_score,
+                        "threshold": self.psi_threshold,
+                    })
 
         total_features = len(feature_summaries)
         drift_count = len(drifted_features)
@@ -196,10 +189,7 @@ class SaaSDriftDetector:
 
         logger.info(
             "Drift analysis complete: %d / %d features drifted (share: %.2f%%). Overall drift: %s",
-            drift_count,
-            total_features,
-            drift_share * 100,
-            overall_drift,
+            drift_count, total_features, drift_share * 100, overall_drift,
         )
 
         return {
@@ -224,8 +214,7 @@ class SaaSDriftDetector:
             from evidently.legacy.metric_preset import DataDriftPreset
 
             cols_to_use = [
-                c
-                for c in self.reference_df.columns
+                c for c in self.reference_df.columns
                 if c in current_data.columns and c not in ["churn", "account_id"]
             ]
 

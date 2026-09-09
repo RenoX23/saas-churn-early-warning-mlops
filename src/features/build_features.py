@@ -5,6 +5,7 @@ Implements zero-leakage transformation, domain-specific behavioral feature deriv
 and serialization for production serving and SHAP interpretability.
 """
 
+from dataclasses import dataclass, field
 import logging
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
@@ -69,9 +70,7 @@ class SaaSFeatureTransformer(BaseEstimator, TransformerMixin):
         transformed_dummy = self._engineer_features(df.head(2))
         self.feature_names_ = list(transformed_dummy.columns)
         self.is_fitted_ = True
-        logger.info(
-            "Fitted SaaSFeatureTransformer with %d output features.", len(self.feature_names_)
-        )
+        logger.info("Fitted SaaSFeatureTransformer with %d output features.", len(self.feature_names_))
         return self
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
@@ -165,12 +164,8 @@ def prepare_training_splits(
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=test_size, random_state=random_state, stratify=y
     )
-    logger.info(
-        "Stratified train/test split: Train=%d, Test=%d (Churn Rate: %.2f%%)",
-        len(y_train),
-        len(y_test),
-        y_train.mean() * 100,
-    )
+    logger.info("Stratified train/test split: Train=%d, Test=%d (Churn Rate: %.2f%%)",
+                len(y_train), len(y_test), y_train.mean() * 100)
 
     transformer = SaaSFeatureTransformer()
     # Fit strictly on train split

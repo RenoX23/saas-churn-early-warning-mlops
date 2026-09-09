@@ -5,17 +5,17 @@ Provides real-time scoring, SHAP local explainability, batch inference,
 and Kubernetes-compatible health/readiness probes.
 """
 
+from contextlib import asynccontextmanager
 import json
 import logging
-import time
-from contextlib import asynccontextmanager
 from pathlib import Path
+import time
 from typing import List
 
-import joblib
-import pandas as pd
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+import joblib
+import pandas as pd
 
 from src.api.schemas import (
     AccountTelemetryInput,

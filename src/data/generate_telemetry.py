@@ -13,6 +13,7 @@ Generates realistic enterprise B2B SaaS account telemetry incorporating:
 import argparse
 import logging
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -48,9 +49,7 @@ def generate_synthetic_telemetry(
     contract_tiers = np.random.choice(tier_choices, size=n_samples, p=tier_probs)
 
     contract_duration_choices = [12, 24, 36]
-    contract_duration = np.random.choice(
-        contract_duration_choices, size=n_samples, p=[0.55, 0.35, 0.10]
-    )
+    contract_duration = np.random.choice(contract_duration_choices, size=n_samples, p=[0.55, 0.35, 0.10])
 
     tenure_months = np.random.gamma(shape=3.0, scale=6.0, size=n_samples).astype(int) + 1
     tenure_months = np.clip(tenure_months, 1, 60)
@@ -129,36 +128,30 @@ def generate_synthetic_telemetry(
     # Generate binary churn labels
     churn = (np.random.rand(n_samples) < churn_probabilities).astype(int)
 
-    df = pd.DataFrame(
-        {
-            "account_id": account_ids,
-            "contract_tier": contract_tiers,
-            "contract_duration_months": contract_duration,
-            "tenure_months": tenure_months,
-            "monthly_recurring_revenue": np.round(mrr, 2),
-            "licensed_seats": licensed_seats,
-            "active_users_last_30d": active_users_30d,
-            "seat_utilization_ratio": seat_utilization_ratio,
-            "login_frequency_last_30d": np.round(login_freq_30d, 2),
-            "login_decay_ratio": login_decay_ratio,
-            "feature_adoption_score": np.round(feature_adoption_score, 4),
-            "support_tickets_last_90d": support_tickets_90d,
-            "p1_tickets_last_30d": p1_tickets_30d,
-            "ticket_escalation_velocity": ticket_escalation_velocity,
-            "csm_touchpoints_last_90d": csm_touchpoints_90d,
-            "billing_overdue_days": billing_overdue_days,
-            "nps_score": nps_score,
-            "churn": churn,
-        }
-    )
+    df = pd.DataFrame({
+        "account_id": account_ids,
+        "contract_tier": contract_tiers,
+        "contract_duration_months": contract_duration,
+        "tenure_months": tenure_months,
+        "monthly_recurring_revenue": np.round(mrr, 2),
+        "licensed_seats": licensed_seats,
+        "active_users_last_30d": active_users_30d,
+        "seat_utilization_ratio": seat_utilization_ratio,
+        "login_frequency_last_30d": np.round(login_freq_30d, 2),
+        "login_decay_ratio": login_decay_ratio,
+        "feature_adoption_score": np.round(feature_adoption_score, 4),
+        "support_tickets_last_90d": support_tickets_90d,
+        "p1_tickets_last_30d": p1_tickets_30d,
+        "ticket_escalation_velocity": ticket_escalation_velocity,
+        "csm_touchpoints_last_90d": csm_touchpoints_90d,
+        "billing_overdue_days": billing_overdue_days,
+        "nps_score": nps_score,
+        "churn": churn,
+    })
 
     actual_churn_rate = df["churn"].mean()
     logger.info("Dataset generated: %d rows, %d columns.", df.shape[0], df.shape[1])
-    logger.info(
-        "Empirical Churn Rate: %.2f%% (%d churned accounts)",
-        actual_churn_rate * 100,
-        df["churn"].sum(),
-    )
+    logger.info("Empirical Churn Rate: %.2f%% (%d churned accounts)", actual_churn_rate * 100, df["churn"].sum())
 
     return df
 
@@ -166,9 +159,7 @@ def generate_synthetic_telemetry(
 def main():
     parser = argparse.ArgumentParser(description="Generate synthetic B2B SaaS account telemetry.")
     parser.add_argument("--samples", type=int, default=10000, help="Number of account records")
-    parser.add_argument(
-        "--output", type=str, default="data/sample_telemetry.csv", help="Output path"
-    )
+    parser.add_argument("--output", type=str, default="data/sample_telemetry.csv", help="Output path")
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
     args = parser.parse_args()
 

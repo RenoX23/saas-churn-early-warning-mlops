@@ -3,7 +3,6 @@ Pydantic v2 data schemas and validation models for the SaaS Churn Early-Warning 
 """
 
 from typing import Any, List, Literal, Optional
-
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -42,7 +41,9 @@ class AccountTelemetryInput(BaseModel):
     contract_duration_months: int = Field(
         ..., ge=1, le=60, description="Contract term commitment in months"
     )
-    tenure_months: int = Field(..., ge=1, le=120, description="Customer relationship age in months")
+    tenure_months: int = Field(
+        ..., ge=1, le=120, description="Customer relationship age in months"
+    )
     monthly_recurring_revenue: float = Field(
         ..., ge=0.0, description="Contract Monthly Recurring Revenue (MRR) in USD"
     )
@@ -84,7 +85,6 @@ class AccountTelemetryInput(BaseModel):
 
 class RiskDriverSchema(BaseModel):
     """Actionable feature attribution returned by SHAP explainer."""
-
     feature: str = Field(..., description="Canonical model feature identifier")
     display_name: str = Field(..., description="Human-readable feature title")
     shap_value: float = Field(..., description="SHAP attribution value (log-odds impact)")
@@ -99,7 +99,6 @@ class RiskDriverSchema(BaseModel):
 
 class PredictionResponse(BaseModel):
     """Real-time single-account churn prediction payload."""
-
     account_id: str
     churn_probability: float
     predicted_churn: bool
@@ -111,7 +110,6 @@ class PredictionResponse(BaseModel):
 
 class BatchTelemetryInput(BaseModel):
     """Batch CRM account scoring payload."""
-
     accounts: List[AccountTelemetryInput] = Field(
         ..., min_length=1, max_length=1000, description="List of account telemetry records"
     )
@@ -119,7 +117,6 @@ class BatchTelemetryInput(BaseModel):
 
 class BatchPredictionResponse(BaseModel):
     """Aggregated batch prediction response."""
-
     total_accounts: int
     at_risk_count: int
     mean_churn_probability: float
@@ -129,7 +126,6 @@ class BatchPredictionResponse(BaseModel):
 
 class HealthResponse(BaseModel):
     """System liveness and readiness probe response."""
-
     status: str
     model_version: str
     model_type: str
